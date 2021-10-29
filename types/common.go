@@ -1,7 +1,7 @@
 package types
 
 type EmailField struct {
-	Email string `json:"email" validate:"email,max=255"`
+	Email string `json:"email" validate:"email,lowercase,max=255"`
 }
 
 type NameField struct {

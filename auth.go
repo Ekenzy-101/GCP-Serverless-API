@@ -2,6 +2,7 @@ package function
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -10,11 +11,68 @@ import (
 	"github.com/Ekenzy-101/GCP-Serverless/model"
 	"github.com/Ekenzy-101/GCP-Serverless/service"
 	"github.com/Ekenzy-101/GCP-Serverless/types"
-	"github.com/golang-jwt/jwt/v4"
+	"google.golang.org/api/iterator"
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
+	requestBody := &types.LoginRequestBody{}
+	if messages := helper.ValidateRequestBody(r, requestBody); messages != nil {
+		helper.SendJSONResponse(w, http.StatusBadRequest, messages)
+		return
+	}
 
+	ctx := context.Background()
+	client, err := service.CreateFirestoreClient(ctx)
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
+	iter := client.Collection(config.UsersCollection).Where("email", "==", requestBody.Email).Documents(ctx)
+	doc, err := iter.Next()
+	if err != nil && !errors.Is(err, iterator.Done) {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
+	if doc == nil {
+		helper.SendJSONResponse(w, http.StatusBadRequest, types.M{"message": "Invalid email or password"})
+		return
+	}
+
+	user := &model.User{}
+	err = doc.DataTo(user)
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusBadRequest, types.M{"message": err.Error()})
+		return
+	}
+
+	matches, err := user.ComparePassword(requestBody.Password)
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
+	if !matches {
+		helper.SendJSONResponse(w, http.StatusBadRequest, types.M{"message": "Invalid email or password"})
+		return
+	}
+
+	user.SetIDAndPassword(doc.Ref.ID)
+	accessToken, err := user.GenerateAccessToken()
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     config.AccessTokenCookieName,
+		MaxAge:   config.AccessTokenTTLInSeconds,
+		Value:    accessToken,
+		HttpOnly: true,
+		Secure:   true,
+	})
+	helper.SendJSONResponse(w, http.StatusOK, types.M{"user": user})
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
@@ -47,24 +105,26 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	iter := client.Collection(config.UsersCollection).Where("email", "==", requestBody.Email).Documents(ctx)
+	doc, err := iter.Next()
+	if err != nil && !errors.Is(err, iterator.Done) {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
+	if doc != nil {
+		helper.SendJSONResponse(w, http.StatusBadRequest, types.M{"message": "A user with this email already exists"})
+		return
+	}
+
 	docRef, _, err := client.Collection(config.UsersCollection).Add(ctx, user)
 	if err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
 		return
 	}
 
-	user.ID = docRef.ID
-	user.Password = ""
-	cliams := jwt.RegisteredClaims{
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(config.AccessTokenTTLInSeconds * time.Second)),
-		Subject:   user.ID,
-	}
-	accessToken, err := service.SignJWTToken(service.JWTOptions{
-		SigningMethod: jwt.SigningMethodHS256,
-		Secret:        config.AccessTokenSecret,
-		Claims:        cliams,
-	})
-
+	user.SetIDAndPassword(docRef.ID)
+	accessToken, err := user.GenerateAccessToken()
 	if err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
 		return

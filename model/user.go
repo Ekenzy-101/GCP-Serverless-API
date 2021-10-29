@@ -7,7 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/Ekenzy-101/GCP-Serverless/config"
+	"github.com/Ekenzy-101/GCP-Serverless/service"
+	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -54,6 +58,18 @@ func (user *User) ComparePassword(password string) (bool, error) {
 	return (subtle.ConstantTimeCompare(decodedHash, comparisonHash) == 1), nil
 }
 
+func (user *User) GenerateAccessToken() (string, error) {
+	cliams := jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(config.AccessTokenTTLInSeconds * time.Second)),
+		Subject:   user.ID,
+	}
+	return service.SignJWTToken(service.JWTOptions{
+		SigningMethod: jwt.SigningMethodHS256,
+		Secret:        config.AccessTokenSecret,
+		Claims:        cliams,
+	})
+}
+
 func (user *User) HashAndSetPassword() error {
 	c := &passwordConfig{
 		time:      1,
@@ -72,4 +88,9 @@ func (user *User) HashAndSetPassword() error {
 	format := "$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s"
 	user.Password = fmt.Sprintf(format, argon2.Version, c.memory, c.time, c.threads, b64Salt, b64Hash)
 	return nil
+}
+
+func (user *User) SetIDAndPassword(id string) {
+	user.ID = id
+	user.Password = ""
 }
