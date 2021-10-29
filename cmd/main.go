@@ -29,6 +29,7 @@ func startApplication() error {
 	authRouter.POST("/register", withHandler(function.Register))
 
 	postRouter := router.Group("/posts")
+	postRouter.POST("", withHandler(function.CreatePost))
 	postRouter.DELETE("", withHandler(function.DeletePost))
 	postRouter.GET("", func(c *gin.Context) {
 		c.JSON(log.Flags(), 1)

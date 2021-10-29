@@ -1,6 +1,10 @@
 package service
 
-import "github.com/golang-jwt/jwt/v4"
+import (
+	"errors"
+
+	"github.com/golang-jwt/jwt/v4"
+)
 
 type JWTOptions struct {
 	SigningMethod jwt.SigningMethod
@@ -26,7 +30,7 @@ func VerifyJWTToken(options JWTOptions) (jwt.Claims, error) {
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Invalid or expired token")
 	}
 
 	return token.Claims, nil

@@ -1,14 +1,10 @@
 package helper
 
 import (
-	"encoding/json"
-	"errors"
-	"net/http"
 	"reflect"
 	"regexp"
 	"strings"
 
-	"github.com/Ekenzy-101/GCP-Serverless/types"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -32,34 +28,6 @@ func init() {
 
 	err = validate.RegisterValidation("password", validatePassword)
 	if err != nil {
-		panic(err)
-	}
-}
-
-// Obj should be a pointer to a value
-func ValidateRequestBody(r *http.Request, obj interface{}) interface{} {
-	err := json.NewDecoder(r.Body).Decode(obj)
-	if err != nil {
-		return types.M{"message": err.Error()}
-	}
-
-	err = validate.Struct(obj)
-	validationErrors := validator.ValidationErrors{}
-	if errors.As(err, &validationErrors) {
-		return GenerateErrorMessages(validationErrors)
-	}
-
-	if err != nil {
-		return types.M{"message": err.Error()}
-	}
-
-	return nil
-}
-
-func SendJSONResponse(w http.ResponseWriter, statusCode int, obj interface{}) {
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	if err := json.NewEncoder(w).Encode(obj); err != nil {
 		panic(err)
 	}
 }

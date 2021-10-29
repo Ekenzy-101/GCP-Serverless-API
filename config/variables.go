@@ -8,11 +8,17 @@ import (
 )
 
 var (
-	AccessTokenSecret = os.Getenv("ACCESS_TOKEN_SECRET")
-	AppEnv            = os.Getenv("APP_ENV")
-	ProjectID         = os.Getenv("PROJECT_ID")
-	PostsCollection   = fmt.Sprintf("serverless-%v-posts", AppEnv)
-	UsersCollection   = fmt.Sprintf("serverless-%v-users", AppEnv)
+	AccessTokenSecret   = os.Getenv("ACCESS_TOKEN_SECRET")
+	AppEnv              = os.Getenv("APP_ENV")
+	ProjectID           = os.Getenv("PROJECT_ID")
+	ServiceAccountEmail = os.Getenv("SERVICE_ACCOUNT_EMAIL")
+	ServiceAccountKey   = os.Getenv("SERVICE_ACCOUNT_KEY")
+)
+
+var (
+	BucketName      = fmt.Sprintf("kenzy-serverless-%v", AppEnv)
+	PostsCollection = fmt.Sprintf("serverless-%v-posts", AppEnv)
+	UsersCollection = fmt.Sprintf("serverless-%v-users", AppEnv)
 )
 
 var (
@@ -27,6 +33,10 @@ func LoadEnvironmentalVariables(filenames ...string) error {
 	AccessTokenSecret = os.Getenv("ACCESS_TOKEN_SECRET")
 	AppEnv = os.Getenv("APP_ENV")
 	ProjectID = os.Getenv("PROJECT_ID")
+	ServiceAccountEmail = os.Getenv("SERVICE_ACCOUNT_EMAIL")
+	ServiceAccountKey = os.Getenv("SERVICE_ACCOUNT_KEY")
+
+	BucketName = fmt.Sprintf("kenzy-serverless-%v", AppEnv)
 	PostsCollection = fmt.Sprintf("serverless-%v-posts", AppEnv)
 	UsersCollection = fmt.Sprintf("serverless-%v-users", AppEnv)
 
