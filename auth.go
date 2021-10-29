@@ -76,7 +76,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-
+	http.SetCookie(w, &http.Cookie{
+		Name:     config.AccessTokenCookieName,
+		MaxAge:   -1,
+		Value:    "",
+		HttpOnly: true,
+		Secure:   true,
+	})
+	helper.SendJSONResponse(w, http.StatusOK, types.M{"message": "Success"})
 }
 
 func Register(w http.ResponseWriter, r *http.Request) {
