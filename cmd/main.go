@@ -32,7 +32,6 @@ func startApplication() error {
 	postRouter.POST("", withHandler(function.CreatePost))
 	postRouter.DELETE("", withHandler(function.DeletePost))
 	postRouter.GET("", func(c *gin.Context) {
-		c.JSON(log.Flags(), 1)
 		if c.Query("id") == "" {
 			function.GetPosts(c.Writer, c.Request)
 			return

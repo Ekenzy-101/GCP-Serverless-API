@@ -53,21 +53,22 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post.User = types.M{"id": claims.Subject, "name": doc.Data()["name"]}
-	docRef, _, err := client.Collection(config.PostsCollection).Add(ctx, post)
-	if err != nil {
-		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
-		return
-	}
-
-	post.ID = docRef.ID
-	url, err := service.GeneratePresignedURL(fmt.Sprintf("posts/%v", post.ID))
+	docRef := client.Collection(config.PostsCollection).NewDoc()
+	url, err := service.GeneratePresignedURL(fmt.Sprintf("posts/%v", docRef.ID))
 	if err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
 		return
 	}
 
 	post.Image = strings.Split(url, "?")[0]
+	post.User = types.M{"id": claims.Subject, "name": doc.Data()["name"]}
+	_, err = docRef.Create(ctx, post)
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
+	post.ID = docRef.ID
 	helper.SendJSONResponse(w, http.StatusOK, types.M{"post": post, "url": url})
 }
 
@@ -76,7 +77,28 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetPost(w http.ResponseWriter, r *http.Request) {
+	postId := r.URL.Query().Get("id")
+	ctx := context.Background()
+	client, err := service.CreateFirestoreClient(ctx)
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
 
+	doc, err := client.Collection(config.PostsCollection).Doc(postId).Get(ctx)
+	if status.Code(err) == codes.NotFound {
+		helper.SendJSONResponse(w, http.StatusNotFound, types.M{"message": "Post with the given id does not exist"})
+		return
+	}
+
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
+	post := doc.Data()
+	post["id"] = postId
+	helper.SendJSONResponse(w, http.StatusOK, types.M{"post": post})
 }
 
 func GetPosts(w http.ResponseWriter, r *http.Request) {
