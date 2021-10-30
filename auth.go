@@ -66,22 +66,24 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     config.AccessTokenCookieName,
-		MaxAge:   config.AccessTokenTTLInSeconds,
-		Value:    accessToken,
 		HttpOnly: true,
+		MaxAge:   config.AccessTokenTTLInSeconds,
+		Name:     config.AccessTokenCookieName,
+		Path:     "/",
 		Secure:   true,
+		Value:    accessToken,
 	})
 	helper.SendJSONResponse(w, http.StatusOK, types.M{"user": user})
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     config.AccessTokenCookieName,
-		MaxAge:   -1,
-		Value:    "",
 		HttpOnly: true,
+		MaxAge:   -1,
+		Name:     config.AccessTokenCookieName,
+		Path:     "/",
 		Secure:   true,
+		Value:    "",
 	})
 	helper.SendJSONResponse(w, http.StatusNoContent, nil)
 }
@@ -138,11 +140,12 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     config.AccessTokenCookieName,
-		MaxAge:   config.AccessTokenTTLInSeconds,
-		Value:    accessToken,
 		HttpOnly: true,
+		MaxAge:   config.AccessTokenTTLInSeconds,
+		Name:     config.AccessTokenCookieName,
+		Path:     "/",
 		Secure:   true,
+		Value:    accessToken,
 	})
 	helper.SendJSONResponse(w, http.StatusOK, types.M{"user": user})
 }

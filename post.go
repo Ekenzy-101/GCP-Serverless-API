@@ -119,6 +119,12 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = service.DeleteObject(ctx, fmt.Sprintf("posts/%v", postId))
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
 	_, err = documentRef.Delete(ctx)
 	if err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
@@ -176,10 +182,14 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	limit, err := strconv.ParseUint(r.URL.Query().Get("limit"), 10, 0)
-	if err != nil {
-		helper.SendJSONResponse(w, http.StatusBadRequest, types.M{"message": "Limit value must be a positive integer"})
-		return
+	var limit uint64 = 5
+	limitQueryValue := r.URL.Query().Get("limit")
+	if limitQueryValue != "" {
+		limit, err = strconv.ParseUint(limitQueryValue, 10, 0)
+		if err != nil {
+			helper.SendJSONResponse(w, http.StatusBadRequest, types.M{"message": "Limit value must be a positive integer"})
+			return
+		}
 	}
 
 	iterator := client.Collection(config.PostsCollection).OrderBy("createdAt", firestore.Desc).
@@ -196,7 +206,10 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 		posts = append(posts, document.Data())
 	}
 
-	next := posts[length-1]["createdAt"]
+	var next interface{}
+	if length != 0 {
+		next = posts[length-1]["createdAt"]
+	}
 	helper.SendJSONResponse(w, http.StatusOK, types.M{"posts": posts, "next": next})
 }
 
