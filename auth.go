@@ -83,7 +83,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 	})
-	helper.SendJSONResponse(w, http.StatusOK, types.M{"message": "Success"})
+	helper.SendJSONResponse(w, http.StatusNoContent, nil)
 }
 
 func Register(w http.ResponseWriter, r *http.Request) {

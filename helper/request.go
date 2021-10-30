@@ -48,7 +48,9 @@ func AuthorizeRequest(r *http.Request) (jwt.Claims, error) {
 func SendJSONResponse(w http.ResponseWriter, statusCode int, obj interface{}) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	if err := json.NewEncoder(w).Encode(obj); err != nil {
-		panic(err)
+	if obj != nil {
+		if err := json.NewEncoder(w).Encode(obj); err != nil {
+			panic(err)
+		}
 	}
 }

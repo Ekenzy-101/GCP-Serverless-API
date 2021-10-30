@@ -2,7 +2,7 @@ package config
 
 const (
 	AccessTokenCookieName    = "sls_acc_token"
-	AccessTokenTTLInSeconds  = 60 * 60
+	AccessTokenTTLInSeconds  = 60 * 60 * 24
 	RefreshTokenCookieName   = "sls_ref_token"
 	RefreshTokenTTLInSeconds = 60 * 60 * 24 * 7
 )

@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/Ekenzy-101/GCP-Serverless/config"
@@ -61,20 +63,69 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post.Image = strings.Split(url, "?")[0]
-	post.User = types.M{"id": claims.Subject, "name": userDocument.Data()["name"]}
-	result, err := documentRef.Create(ctx, post)
+	now := time.Now().UTC()
+	post = post.SetID(documentRef.ID).SetImage(strings.Split(url, "?")[0]).SetTimestamps(now, now).
+		SetUser(types.M{"id": claims.Subject, "name": userDocument.Data()["name"]})
+	_, err = documentRef.Create(ctx, post)
 	if err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
 		return
 	}
 
-	post = post.SetID(documentRef.ID).SetTimestamps(result.UpdateTime, result.UpdateTime)
-	helper.SendJSONResponse(w, http.StatusOK, types.M{"post": post, "url": url})
+	helper.SendJSONResponse(w, http.StatusCreated, types.M{"post": post, "url": url})
 }
 
 func DeletePost(w http.ResponseWriter, r *http.Request) {
+	value, err := helper.AuthorizeRequest(r)
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusUnauthorized, types.M{"message": err.Error()})
+		return
+	}
 
+	claims, ok := value.(*jwt.RegisteredClaims)
+	if !ok {
+		helper.SendJSONResponse(w, http.StatusUnauthorized, types.M{"message": "Payload's format is invalid"})
+		return
+	}
+
+	postId := r.URL.Query().Get("id")
+	ctx := context.Background()
+	client, err := service.CreateFirestoreClient(ctx)
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
+	documentRef := client.Collection(config.PostsCollection).Doc(postId)
+	document, err := documentRef.Get(ctx)
+	if status.Code(err) == codes.NotFound {
+		helper.SendJSONResponse(w, http.StatusNotFound, types.M{"message": "Post with the given id does not exist"})
+		return
+	}
+
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
+	post, err := model.NewPostFromDocument(document)
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
+	if post.User["id"] != claims.Subject {
+		helper.SendJSONResponse(w, http.StatusForbidden, types.M{"message": "You are not allowed to delete this post"})
+		return
+	}
+
+	_, err = documentRef.Delete(ctx)
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
+	helper.SendJSONResponse(w, http.StatusNoContent, nil)
 }
 
 func GetPost(w http.ResponseWriter, r *http.Request) {
@@ -103,12 +154,50 @@ func GetPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post = post.SetID(postId).SetTimestamps(document.CreateTime, document.UpdateTime)
 	helper.SendJSONResponse(w, http.StatusOK, types.M{"post": post})
 }
 
 func GetPosts(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	client, err := service.CreateFirestoreClient(ctx)
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
 
+	skip := time.Now()
+	skipQueryValue := r.URL.Query().Get("skip")
+	if skipQueryValue != "" {
+		layout := "2006-01-02T15:04:05.999999Z"
+		skip, err = time.Parse(layout, skipQueryValue)
+		if err != nil {
+			helper.SendJSONResponse(w, http.StatusBadRequest, types.M{"message": fmt.Sprintf("Skip value must be in this time format '%v'", layout)})
+			return
+		}
+	}
+
+	limit, err := strconv.ParseUint(r.URL.Query().Get("limit"), 10, 0)
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusBadRequest, types.M{"message": "Limit value must be a positive integer"})
+		return
+	}
+
+	iterator := client.Collection(config.PostsCollection).OrderBy("createdAt", firestore.Desc).
+		StartAfter(skip).Limit(int(limit)).Documents(ctx)
+	documents, err := iterator.GetAll()
+	if err != nil {
+		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
+		return
+	}
+
+	length := len(documents)
+	posts := make([]types.M, 0, length)
+	for _, document := range documents {
+		posts = append(posts, document.Data())
+	}
+
+	next := posts[length-1]["createdAt"]
+	helper.SendJSONResponse(w, http.StatusOK, types.M{"posts": posts, "next": next})
 }
 
 func UpdatePost(w http.ResponseWriter, r *http.Request) {
@@ -161,17 +250,19 @@ func UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	now := time.Now().UTC()
 	updates := []firestore.Update{
 		{Path: "title", Value: requestBody.Title},
 		{Path: "content", Value: requestBody.Content},
+		{Path: "updatedAt", Value: now},
 	}
-	result, err := documentRef.Update(ctx, updates)
+	_, err = documentRef.Update(ctx, updates)
 	if err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
 		return
 	}
 
 	post = post.SetContent(requestBody.Content).SetID(postId).
-		SetTimestamps(document.CreateTime, result.UpdateTime).SetTitle(requestBody.Title)
+		SetTimestamps(post.CreatedAt, now).SetTitle(requestBody.Title)
 	helper.SendJSONResponse(w, http.StatusOK, types.M{"post": post})
 }
