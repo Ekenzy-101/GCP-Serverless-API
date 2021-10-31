@@ -12,6 +12,7 @@
 *.out
 
 *.env*
+!example.env
 node_modules
 templates
 .serverless

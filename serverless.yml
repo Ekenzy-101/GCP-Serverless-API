@@ -59,7 +59,7 @@ functions:
 resources:
   resources:
     - type: storage.v1.bucket
-      name: kenzy-serverless-${opt:stage}
+      name: ${env:BUCKET_NAME}
       properties:
         cors:
           - maxAgeSeconds: 3600
