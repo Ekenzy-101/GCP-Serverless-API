@@ -11,6 +11,7 @@ var (
 	AccessTokenSecret   = os.Getenv("ACCESS_TOKEN_SECRET")
 	AppEnv              = os.Getenv("APP_ENV")
 	BucketName          = os.Getenv("BUCKET_NAME")
+	Port                = os.Getenv("PORT")
 	ProjectID           = os.Getenv("PROJECT_ID")
 	ServiceAccountEmail = os.Getenv("SERVICE_ACCOUNT_EMAIL")
 	ServiceAccountKey   = os.Getenv("SERVICE_ACCOUNT_KEY")
@@ -19,10 +20,6 @@ var (
 var (
 	PostsCollection = fmt.Sprintf("serverless-%v-posts", AppEnv)
 	UsersCollection = fmt.Sprintf("serverless-%v-users", AppEnv)
-)
-
-var (
-	Port string
 )
 
 func LoadEnvironmentalVariables(filenames ...string) error {

@@ -16,11 +16,6 @@ func main() {
 }
 
 func startApplication() error {
-	err := config.LoadEnvironmentalVariables()
-	if err != nil {
-		return err
-	}
-
 	router := gin.Default()
 
 	authRouter := router.Group("/auth")

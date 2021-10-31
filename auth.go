@@ -22,27 +22,21 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := context.Background()
-	client, err := service.CreateFirestoreClient(ctx)
-	if err != nil {
-		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
-		return
-	}
-
+	client := service.GetFirestoreClient()
 	iter := client.Collection(config.UsersCollection).Where("email", "==", requestBody.Email).Documents(ctx)
-	doc, err := iter.Next()
+	document, err := iter.Next()
 	if err != nil && !errors.Is(err, iterator.Done) {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
 		return
 	}
 
-	if doc == nil {
+	if document == nil {
 		helper.SendJSONResponse(w, http.StatusBadRequest, types.M{"message": "Invalid email or password"})
 		return
 	}
 
 	user := &model.User{}
-	err = doc.DataTo(user)
-	if err != nil {
+	if err := document.DataTo(user); err != nil {
 		helper.SendJSONResponse(w, http.StatusBadRequest, types.M{"message": err.Error()})
 		return
 	}
@@ -58,7 +52,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user.SetIDAndPassword(doc.Ref.ID)
+	user.SetIDAndPassword(document.Ref.ID)
 	accessToken, err := user.GenerateAccessToken()
 	if err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
@@ -101,38 +95,32 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		Password:  requestBody.Password,
 		CreatedAt: time.Now(),
 	}
-	err := user.HashAndSetPassword()
-	if err != nil {
+	if err := user.HashAndSetPassword(); err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
 		return
 	}
 
 	ctx := context.Background()
-	client, err := service.CreateFirestoreClient(ctx)
-	if err != nil {
-		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
-		return
-	}
-
+	client := service.GetFirestoreClient()
 	iter := client.Collection(config.UsersCollection).Where("email", "==", requestBody.Email).Documents(ctx)
-	doc, err := iter.Next()
+	document, err := iter.Next()
 	if err != nil && !errors.Is(err, iterator.Done) {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
 		return
 	}
 
-	if doc != nil {
+	if document != nil {
 		helper.SendJSONResponse(w, http.StatusBadRequest, types.M{"message": "A user with this email already exists"})
 		return
 	}
 
-	docRef, _, err := client.Collection(config.UsersCollection).Add(ctx, user)
+	documentRef, _, err := client.Collection(config.UsersCollection).Add(ctx, user)
 	if err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
 		return
 	}
 
-	user.SetIDAndPassword(docRef.ID)
+	user.SetIDAndPassword(documentRef.ID)
 	accessToken, err := user.GenerateAccessToken()
 	if err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})

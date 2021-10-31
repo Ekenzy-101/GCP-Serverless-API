@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"log"
 	"reflect"
 	"regexp"
 	"strings"
@@ -23,12 +24,12 @@ func init() {
 	validate.RegisterTagNameFunc(jsonTagName)
 	err := validate.RegisterValidation("name", validateName)
 	if err != nil {
-		panic(err)
+		log.Fatalf("RegisterValidation [name] %v", err)
 	}
 
 	err = validate.RegisterValidation("password", validatePassword)
 	if err != nil {
-		panic(err)
+		log.Fatalf("RegisterValidation [password] %v", err)
 	}
 }
 

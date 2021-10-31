@@ -33,12 +33,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := context.Background()
-	client, err := service.CreateFirestoreClient(ctx)
-	if err != nil {
-		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
-		return
-	}
-
+	client := service.GetFirestoreClient()
 	userDocument, err := client.Collection(config.UsersCollection).Doc(claims.Subject).Get(ctx)
 	if status.Code(err) == codes.NotFound {
 		helper.SendJSONResponse(w, http.StatusNotFound, types.M{"message": "User not found"})
@@ -90,12 +85,7 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 
 	postId := r.URL.Query().Get("id")
 	ctx := context.Background()
-	client, err := service.CreateFirestoreClient(ctx)
-	if err != nil {
-		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
-		return
-	}
-
+	client := service.GetFirestoreClient()
 	documentRef := client.Collection(config.PostsCollection).Doc(postId)
 	document, err := documentRef.Get(ctx)
 	if status.Code(err) == codes.NotFound {
@@ -119,14 +109,12 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = service.DeleteObject(ctx, fmt.Sprintf("posts/%v", postId))
-	if err != nil {
+	if err := service.DeleteObject(ctx, fmt.Sprintf("posts/%v", postId)); err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
 		return
 	}
 
-	_, err = documentRef.Delete(ctx)
-	if err != nil {
+	if _, err = documentRef.Delete(ctx); err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
 		return
 	}
@@ -137,12 +125,7 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 func GetPost(w http.ResponseWriter, r *http.Request) {
 	postId := r.URL.Query().Get("id")
 	ctx := context.Background()
-	client, err := service.CreateFirestoreClient(ctx)
-	if err != nil {
-		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
-		return
-	}
-
+	client := service.GetFirestoreClient()
 	document, err := client.Collection(config.PostsCollection).Doc(postId).Get(ctx)
 	if status.Code(err) == codes.NotFound {
 		helper.SendJSONResponse(w, http.StatusNotFound, types.M{"message": "Post with the given id does not exist"})
@@ -164,13 +147,7 @@ func GetPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetPosts(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	client, err := service.CreateFirestoreClient(ctx)
-	if err != nil {
-		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
-		return
-	}
-
+	var err error
 	skip := time.Now()
 	skipQueryValue := r.URL.Query().Get("skip")
 	if skipQueryValue != "" {
@@ -192,6 +169,8 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	ctx := context.Background()
+	client := service.GetFirestoreClient()
 	iterator := client.Collection(config.PostsCollection).OrderBy("createdAt", firestore.Desc).
 		StartAfter(skip).Limit(int(limit)).Documents(ctx)
 	documents, err := iterator.GetAll()
@@ -234,12 +213,7 @@ func UpdatePost(w http.ResponseWriter, r *http.Request) {
 
 	postId := r.URL.Query().Get("id")
 	ctx := context.Background()
-	client, err := service.CreateFirestoreClient(ctx)
-	if err != nil {
-		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
-		return
-	}
-
+	client := service.GetFirestoreClient()
 	documentRef := client.Collection(config.PostsCollection).Doc(postId)
 	document, err := documentRef.Get(ctx)
 	if status.Code(err) == codes.NotFound {
@@ -269,8 +243,7 @@ func UpdatePost(w http.ResponseWriter, r *http.Request) {
 		{Path: "content", Value: requestBody.Content},
 		{Path: "updatedAt", Value: now},
 	}
-	_, err = documentRef.Update(ctx, updates)
-	if err != nil {
+	if _, err := documentRef.Update(ctx, updates); err != nil {
 		helper.SendJSONResponse(w, http.StatusInternalServerError, types.M{"message": err.Error()})
 		return
 	}

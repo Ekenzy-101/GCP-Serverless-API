@@ -20,10 +20,5 @@ func GeneratePresignedURL(object string) (string, error) {
 }
 
 func DeleteObject(ctx context.Context, object string) error {
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		return err
-	}
-
-	return client.Bucket(config.BucketName).Object(object).Delete(ctx)
+	return storageClient.Bucket(config.BucketName).Object(object).Delete(ctx)
 }
