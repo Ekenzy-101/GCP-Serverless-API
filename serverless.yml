@@ -1,0 +1,77 @@
+service: serverless
+frameworkVersion: "2"
+provider:
+  credentials: ~/.config/gcloud/application_default_credentials.json
+  environment:
+    APP_ENV: ${env:APP_ENV}
+    ACCESS_TOKEN_SECRET: ${env:ACCESS_TOKEN_SECRET}
+    PROJECT_ID: ${env:PROJECT_ID}
+    SERVICE_ACCOUNT_EMAIL: ${env:SERVICE_ACCOUNT_EMAIL}
+    SERVICE_ACCOUNT_KEY: ${env:SERVICE_ACCOUNT_KEY}
+  name: google
+  project: ${env:PROJECT_ID}
+  region: ${env:REGION}
+  runtime: go116
+plugins:
+  - serverless-google-cloudfunctions
+  - serverless-dotenv-plugin
+package:
+  exclude:
+    - .gitignore
+    - .git/**
+    - "*.env*"
+    - cmd
+    - node_modules
+    - templates
+functions:
+  Login:
+    handler: Login
+    events:
+      - http: path
+  Logout:
+    handler: Logout
+    events:
+      - http: path
+  Register:
+    handler: Register
+    events:
+      - http: path
+  CreatePost:
+    handler: CreatePost
+    events:
+      - http: path
+  DeletePost:
+    handler: DeletePost
+    events:
+      - http: path
+  GetPost:
+    handler: GetPost
+    events:
+      - http: path
+  GetPosts:
+    handler: GetPosts
+    events:
+      - http: path
+  UpdatePost:
+    handler: UpdatePost
+    events:
+      - http: path
+resources:
+  resources:
+    - type: storage.v1.bucket
+      name: kenzy-serverless-${opt:stage}
+      properties:
+        cors:
+          - maxAgeSeconds: 3600
+            method:
+              - GET
+              - OPTIONS
+              - PUT
+            origin:
+              - "*"
+        iamConfiguration:
+          publicAccessPrevention: unspecified
+          uniformBucketLevelAccess:
+            enabled: true
+        location: US
+        storageClass: STANDARD

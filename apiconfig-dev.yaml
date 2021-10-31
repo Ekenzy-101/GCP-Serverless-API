@@ -1,0 +1,274 @@
+swagger: "2.0"
+info:
+  title: serverless API
+  description: Sample API on API Gateway with a Google Cloud Functions backend
+  version: 1.0.0
+basePath: /v1
+schemes:
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+definitions:
+  Error:
+    type: object
+    properties:
+      message:
+        type: string
+  User:
+    properties:
+      id:
+        type: string
+        example: "1892992"
+      email:
+        type: string
+        example: John Doe
+      name:
+        type: string
+        example: John Doe
+      image:
+        type: string
+        example: "https://s3.amazonaws.com/users/1892992"
+      posts:
+        type: array
+        items:
+          $ref: "#/definitions/Post"
+  Post:
+    properties:
+      id:
+        type: string
+        example: "1892992"
+      content:
+        type: string
+        example: My first post
+      image:
+        type: string
+        example: "https://s3.amazonaws.com/posts/1892992"
+      user:
+        type: object
+        $ref: "#/definitions/User"
+      title:
+        type: string
+        example: My first post
+    required:
+      - title
+
+paths:
+  /auth/login:
+    post:
+      summary: Returns the logged in user info
+      operationId: Login
+      x-google-backend:
+        address: https://us-central1-hello-world-306210.cloudfunctions.net/serverless-dev-Login
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              user:
+                type: object
+                $ref: "#/definitions/User"
+        400:
+          description: Invalid fields
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/Error"
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      operationId: Logout
+      x-google-backend:
+        address: https://us-central1-hello-world-306210.cloudfunctions.net/serverless-dev-Logout
+      responses:
+        204:
+          description: OK
+
+  /auth/register:
+    post:
+      summary: Returns the registered user info
+      operationId: Register
+      x-google-backend:
+        address: https://us-central1-hello-world-306210.cloudfunctions.net/serverless-dev-Register
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              user:
+                type: object
+                $ref: "#/definitions/User"
+        400:
+          description: Invalid fields
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/Error"
+
+  /posts:
+    post:
+      summary: Create a post
+      operationId: CreatePost
+      x-google-backend:
+        address: https://us-central1-hello-world-306210.cloudfunctions.net/serverless-dev-CreatePost
+      responses:
+        201:
+          description: A object that contains post and presigned url
+          schema:
+            type: object
+            properties:
+              post:
+                $ref: "#/definitions/Post"
+              url:
+                type: string
+        401:
+          description: User is not logged in
+          schema:
+            $ref: "#/definitions/Error"
+        400:
+          description: Invalid fields
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/Error"
+    get:
+      summary: Returns a list of posts
+      operationId: GetPosts
+      x-google-backend:
+        address: https://us-central1-hello-world-306210.cloudfunctions.net/serverless-dev-GetPosts
+        deadline: 10.0
+        protocol: h2
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              posts:
+                type: array
+                items:
+                  $ref: "#/definitions/Post"
+              next:
+                type: string
+        400:
+          description: Invalid query parameters
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/Error"
+  /posts/{id}:
+    delete:
+      summary: Delete a post by ID.
+      operationId: DeletePost
+      parameters:
+        - in: path
+          name: id
+          type: string
+          required: true
+          description: Post ID
+      x-google-backend:
+        address: https://us-central1-hello-world-306210.cloudfunctions.net/serverless-dev-DeletePost
+      responses:
+        204:
+          description: OK
+        401:
+          description: User is not logged in
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Auth user is not allowed to delete post
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: A post with the given ID was not found
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/Error"
+    get:
+      summary: Return a post by ID.
+      operationId: GetPost
+      parameters:
+        - in: path
+          name: id
+          type: string
+          required: true
+          description: Post ID
+      x-google-backend:
+        address: https://us-central1-hello-world-306210.cloudfunctions.net/serverless-dev-GetPost
+      responses:
+        200:
+          description: A object with key post and value a post object
+          schema:
+            type: object
+            properties:
+              post:
+                $ref: "#/definitions/Post"
+        404:
+          description: A post with the given ID was not found
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/Error"
+    put:
+      summary: Update and return a post by ID.
+      operationId: UpdatePost
+      parameters:
+        - in: path
+          name: id
+          type: string
+          required: true
+          description: Post ID
+      x-google-backend:
+        address: https://us-central1-hello-world-306210.cloudfunctions.net/serverless-dev-UpdatePost
+      responses:
+        200:
+          description: A object with key post and value a post object
+          schema:
+            type: object
+            properties:
+              post:
+                $ref: "#/definitions/Post"
+        400:
+          description: Invalid fields
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: User is not logged in
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Auth user is not allowed to update post
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: A post with the given ID was not found
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/Error"
+securityDefinitions:
+  APIKey:
+    type: apiKey
+    name: key
+    in: query
+security:
+  - APIKey: []
