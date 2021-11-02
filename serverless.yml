@@ -5,6 +5,7 @@ provider:
   environment:
     APP_ENV: ${env:APP_ENV}
     ACCESS_TOKEN_SECRET: ${env:ACCESS_TOKEN_SECRET}
+    BUCKET_NAME: ${env:BUCKET_NAME}
     PROJECT_ID: ${env:PROJECT_ID}
     SERVICE_ACCOUNT_EMAIL: ${env:SERVICE_ACCOUNT_EMAIL}
     SERVICE_ACCOUNT_KEY: ${env:SERVICE_ACCOUNT_KEY}
@@ -14,7 +15,6 @@ provider:
   runtime: go116
 plugins:
   - serverless-google-cloudfunctions
-  - serverless-dotenv-plugin
 package:
   exclude:
     - .gitignore
@@ -23,55 +23,72 @@ package:
     - cmd
     - node_modules
     - templates
+useDotenv: true
 functions:
   Login:
     handler: Login
+    maxInstances: 10
+    serviceAccountEmail: ${env:SERVICE_ACCOUNT_EMAIL}
     events:
       - http: path
   Logout:
     handler: Logout
+    maxInstances: 10
+    serviceAccountEmail: ${env:SERVICE_ACCOUNT_EMAIL}
     events:
       - http: path
   Register:
     handler: Register
+    maxInstances: 10
+    serviceAccountEmail: ${env:SERVICE_ACCOUNT_EMAIL}
     events:
       - http: path
   CreatePost:
     handler: CreatePost
+    maxInstances: 10
+    serviceAccountEmail: ${env:SERVICE_ACCOUNT_EMAIL}
     events:
       - http: path
   DeletePost:
     handler: DeletePost
+    maxInstances: 10
+    serviceAccountEmail: ${env:SERVICE_ACCOUNT_EMAIL}
     events:
       - http: path
   GetPost:
     handler: GetPost
+    maxInstances: 10
+    serviceAccountEmail: ${env:SERVICE_ACCOUNT_EMAIL}
     events:
       - http: path
   GetPosts:
     handler: GetPosts
+    maxInstances: 10
+    serviceAccountEmail: ${env:SERVICE_ACCOUNT_EMAIL}
     events:
       - http: path
   UpdatePost:
     handler: UpdatePost
+    maxInstances: 10
+    serviceAccountEmail: ${env:SERVICE_ACCOUNT_EMAIL}
     events:
       - http: path
-resources:
-  resources:
-    - type: storage.v1.bucket
-      name: ${env:BUCKET_NAME}
-      properties:
-        cors:
-          - maxAgeSeconds: 3600
-            method:
-              - GET
-              - OPTIONS
-              - PUT
-            origin:
-              - "*"
-        iamConfiguration:
-          publicAccessPrevention: unspecified
-          uniformBucketLevelAccess:
-            enabled: true
-        location: US
-        storageClass: STANDARD
+# resources:
+#   resources:
+#     - type: storage.v1.bucket
+#       name: ${env:BUCKET_NAME}
+#       properties:
+#         cors:
+#           - maxAgeSeconds: 3600
+#             method:
+#               - GET
+#               - OPTIONS
+#               - PUT
+#             origin:
+#               - "*"
+#         iamConfiguration:
+#           publicAccessPrevention: unspecified
+#           uniformBucketLevelAccess:
+#             enabled: true
+#         location: US
+#         storageClass: STANDARD

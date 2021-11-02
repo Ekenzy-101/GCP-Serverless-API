@@ -12,7 +12,7 @@
 
 - `git clone <THIS REPO URL>` and `cd` into the folder
 - `go mod download` to download modules to local cache
-- Create a service account, add roles `Cloud Functions Invoker`,`Storage Object Admin` and private key for the account
+- Create a service account and private key for the account, add roles `Cloud Functions Invoker`,`Storage Object Admin`, `Cloud Datastore User`
 - Create a publicly accessible Google Cloud Storage Bucket
 - Copy the following environmental variables to a `.env` file from `example.env` and fill in your credentials
 - `make dev` OR `go run cmd/main.go` to start the application
